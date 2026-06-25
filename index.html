@@ -1,0 +1,902 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Loft Palermo · Análisis Airbnb</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Bakbak+One&display=swap');
+
+  :root {
+    --green: #2E5634;
+    --green-dark: #1e3b22;
+    --green-mid: #3d7045;
+    --green-light: rgba(46,86,52,0.08);
+    --green-border: rgba(46,86,52,0.2);
+    --cream: #F2EFEB;
+    --cream2: #EAE6E0;
+    --light-gray: #F1F1F1;
+    --white: #FFFFFF;
+    --text: #272626;
+    --muted: #7a7a7a;
+    --border: rgba(46,86,52,0.15);
+    /* legacy aliases so existing rules still work */
+    --gold: #2E5634;
+    --gold-light: #3d7045;
+    --dark: #F2EFEB;
+    --dark2: #FFFFFF;
+    --dark3: #F1F1F1;
+    --dark4: #E8E4E0;
+  }
+
+  * { margin:0; padding:0; box-sizing:border-box; }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--white);
+    color: var(--text);
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 16px;
+    line-height: 1.6;
+  }
+
+  /* ── NAV ── */
+  nav {
+    position: fixed; top:0; left:0; right:0; z-index:100;
+    padding: 18px 48px;
+    display: flex; justify-content: space-between; align-items: center;
+    background: rgba(255,255,255,0.92);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border);
+    box-shadow: 0 1px 20px rgba(0,0,0,0.06);
+  }
+  .nav-logo { font-size:13px; letter-spacing:3px; color:var(--green); text-transform:uppercase; font-weight:700; font-family:'Bakbak One',sans-serif; }
+  .nav-links { display:flex; gap:32px; }
+  .nav-links a { color:var(--muted); text-decoration:none; font-size:13px; letter-spacing:1px; text-transform:uppercase; transition:.2s; }
+  .nav-links a:hover { color:var(--green); }
+
+  /* ── DISCLAIMER ── */
+  .disclaimer-bar {
+    background: rgba(46,86,52,0.06);
+    border-bottom: 1px solid var(--border);
+    padding: 10px 48px;
+    text-align: center;
+    font-size: 11px;
+    letter-spacing: 1px;
+    color: #777;
+    position: fixed; top: 57px; left:0; right:0; z-index:99;
+  }
+  .disclaimer-bar strong { color: var(--gold); font-weight: 500; }
+
+  /* ── HERO ── */
+  .hero {
+    min-height: 100vh;
+    display: flex; flex-direction: column; justify-content: flex-end;
+    padding: 0 48px 80px;
+    position: relative;
+    overflow: hidden;
+    background: linear-gradient(160deg, #1e3b22 0%, #2E5634 50%, #1a3320 100%);
+  }
+
+  .hero-grid {
+    position: absolute; inset:0;
+    background-image:
+      linear-gradient(rgba(242,239,235,0.06) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(242,239,235,0.06) 1px, transparent 1px);
+    background-size: 60px 60px;
+  }
+
+  .hero-badge {
+    display: inline-flex; align-items: center; gap:8px;
+    background: rgba(242,239,235,0.12);
+    border: 1px solid rgba(242,239,235,0.3);
+    padding: 6px 16px; border-radius:2px;
+    font-size:11px; letter-spacing:3px; text-transform:uppercase; color:var(--cream);
+    margin-bottom: 24px; width: fit-content;
+  }
+  .hero-badge span { width:6px; height:6px; border-radius:50%; background:var(--cream); animation: pulse 2s infinite; }
+
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.3} }
+
+  .hero h1 {
+    font-size: clamp(42px, 7vw, 88px);
+    font-weight: 400;
+    font-family: 'Bakbak One', sans-serif;
+    letter-spacing: 1px;
+    line-height: 1.0;
+    margin-bottom: 12px;
+    color: var(--cream);
+  }
+  .hero h1 em { font-style:normal; color:var(--cream2); }
+
+  .hero-sub {
+    font-size:15px; color:rgba(242,239,235,0.7); letter-spacing:1px;
+    margin-bottom: 64px;
+    text-transform: uppercase;
+  }
+
+  .hero-stats {
+    display: grid; grid-template-columns: repeat(3, 1fr);
+    gap: 1px; background: rgba(242,239,235,0.2);
+    border: 1px solid rgba(242,239,235,0.2);
+    max-width: 640px;
+  }
+  .hero-stat {
+    background: rgba(30,59,34,0.85);
+    padding: 24px 28px;
+  }
+  .hero-stat .val {
+    font-size: 36px; font-weight: 400; color:var(--cream);
+    font-family:'Bakbak One',sans-serif;
+    letter-spacing:0px; line-height:1;
+  }
+  .hero-stat .lbl {
+    font-size: 11px; letter-spacing:2px; text-transform:uppercase;
+    color:rgba(242,239,235,0.6); margin-top:6px;
+  }
+
+  .scroll-hint {
+    position: absolute; bottom:32px; right:48px;
+    font-size:11px; letter-spacing:2px; color:rgba(242,239,235,0.5); text-transform:uppercase;
+    display:flex; align-items:center; gap:12px;
+  }
+  .scroll-hint::before {
+    content:''; display:block; width:40px; height:1px; background:rgba(242,239,235,0.4);
+  }
+
+  /* ── SECTIONS ── */
+  section { padding: 100px 48px; max-width: 1100px; margin:0 auto; }
+
+  .section-label {
+    font-size:11px; letter-spacing:4px; text-transform:uppercase;
+    color:var(--gold); margin-bottom:16px;
+    display:flex; align-items:center; gap:16px;
+  }
+  .section-label::after { content:''; flex:1; height:1px; background:var(--border); }
+
+  h2 {
+    font-size: clamp(28px, 4vw, 44px);
+    font-family: 'Bakbak One', sans-serif;
+    font-weight: 400; letter-spacing:0.5px;
+    margin-bottom: 48px; color:var(--text);
+  }
+
+  /* ── DEPTO ── */
+  .depto-grid {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 48px; align-items: start;
+  }
+  .depto-desc { font-size:17px; color:#555; line-height:1.8; }
+  .depto-desc p { margin-bottom:20px; }
+  .depto-desc strong { color:var(--text); font-weight:600; }
+
+  .amenidades {
+    display: grid; grid-template-columns: 1fr 1fr; gap:2px;
+    background: var(--border);
+    border: 1px solid var(--border);
+  }
+  .amenidad {
+    background: var(--white);
+    padding: 18px 20px;
+    display:flex; align-items:center; gap:12px;
+    font-size:13px; color:var(--text);
+    transition: background .2s;
+  }
+  .amenidad:hover { background: var(--light-gray); }
+  .amenidad .icon {
+    font-size:18px; width:28px; text-align:center;
+    color:var(--green);
+  }
+
+  .diferenciador {
+    margin-top:32px;
+    padding: 24px;
+    border-left: 3px solid var(--green);
+    background: var(--green-light);
+    font-size:14px; color:#4a4a4a; line-height:1.7;
+  }
+
+  /* ── MERCADO ── */
+  .mercado-cards {
+    display: grid; grid-template-columns: repeat(3, 1fr); gap:2px;
+    background: var(--border); border: 1px solid var(--border);
+    margin-bottom: 48px;
+  }
+  .mercado-card {
+    background: var(--white); padding: 32px 28px;
+  }
+  .mercado-card .big {
+    font-size:42px; font-family:'Bakbak One',sans-serif; font-weight:400; color:var(--green);
+    letter-spacing:-2px; line-height:1;
+    margin-bottom:8px;
+  }
+  .mercado-card .unit { font-size:16px; font-weight:400; color:#999; }
+  .mercado-card h4 {
+    font-size:11px; letter-spacing:2px; text-transform:uppercase;
+    color:var(--green); margin-bottom:12px; opacity:0.7;
+  }
+  .mercado-card p { font-size:13px; color:#666; line-height:1.6; }
+
+  .trend-bar {
+    background: var(--white); border: 1px solid var(--border);
+    padding: 32px; margin-top:0;
+  }
+  .trend-bar h4 {
+    font-size:11px; letter-spacing:2px; text-transform:uppercase;
+    color:var(--green); margin-bottom:20px; opacity:0.7;
+  }
+  .barrios {
+    display:flex; flex-direction:column; gap:12px;
+  }
+  .barrio { display:flex; align-items:center; gap:16px; font-size:13px; }
+  .barrio-name { width:120px; color:var(--text); font-size:13px; }
+  .barrio-track {
+    flex:1; height:6px; background: var(--dark4); border-radius:1px; overflow:hidden;
+  }
+  .barrio-fill {
+    height:100%; background: var(--gold); border-radius:1px;
+    transition: width 1.5s ease;
+  }
+  .barrio-val { width:50px; text-align:right; color:var(--green); font-size:12px; font-weight:600; }
+
+  /* ── TABLA 12M ── */
+  .tabla-12m {
+    width: 100%; border-collapse: collapse; font-size:13px;
+    background: var(--dark2);
+  }
+  .tabla-12m th {
+    padding: 10px 14px; text-align:right; background:var(--light-gray);
+    font-size:10px; letter-spacing:2px; text-transform:uppercase;
+    color:var(--green); border-bottom:1px solid var(--border);
+    font-weight:400; opacity:0.8;
+  }
+  .tabla-12m th:first-child { text-align:left; }
+  .tabla-12m td {
+    padding: 11px 14px; text-align:right;
+    border-bottom: 1px solid rgba(255,255,255,0.04);
+    color: #bbb; font-variant-numeric: tabular-nums;
+  }
+  .tabla-12m td:first-child { text-align:left; color:var(--muted); font-size:12px; letter-spacing:1px; }
+  .tabla-12m tr.resultado td { color: var(--green); font-weight:600; }
+  .tabla-12m tr.resultado td:first-child { color:var(--text); }
+  .tabla-12m tr.total-row td { background: var(--light-gray); color:var(--text); font-weight:500; border-top:1px solid var(--border); }
+  .tabla-12m tr.total-row td.gold { color:var(--green); }
+  .tabla-12m .neg { color: #c05050; }
+  .tabla-12m .high { color: var(--green); font-weight:600; }
+  .tabla-12m .low { color: #aaa; }
+  .tabla-12m-wrap {
+    border: 1px solid var(--border); overflow-x: auto; margin-bottom:48px;
+  }
+
+  /* ── PROYECCIÓN ── */
+  .escenarios {
+    display: grid; grid-template-columns: repeat(3, 1fr); gap:2px;
+    background: var(--border); border: 1px solid var(--border);
+    margin-bottom: 48px;
+  }
+
+  .escenario {
+    background: var(--white); padding: 40px 32px;
+    position: relative; overflow:hidden;
+    transition: background .3s;
+  }
+  .escenario:hover { background: var(--light-gray); }
+  .escenario.base {
+    background: linear-gradient(160deg, #edf4ee, #f0f6f0);
+    border-top: 3px solid var(--green);
+  }
+  .escenario.base::before {
+    content: 'RECOMENDADO';
+    position:absolute; top:16px; right:16px;
+    font-size:9px; letter-spacing:2px; color:var(--green);
+    background: rgba(46,86,52,0.1); padding:4px 8px; border-radius:1px;
+  }
+
+  .esc-tag {
+    font-size:10px; letter-spacing:3px; text-transform:uppercase;
+    color:var(--green); opacity:0.7; margin-bottom:24px;
+  }
+  .esc-occ {
+    font-size:13px; color:#777; margin-bottom:4px;
+  }
+  .esc-precio {
+    font-size:13px; color:#777; margin-bottom:28px;
+  }
+
+  .esc-main {
+    font-size:52px; font-family:'Bakbak One',sans-serif; font-weight:400; letter-spacing:0px; line-height:1;
+    color:var(--green); margin-bottom:4px;
+  }
+  .esc-main .curr { font-size:24px; }
+  .esc-sub {
+    font-size:11px; letter-spacing:2px; text-transform:uppercase;
+    color:var(--muted); margin-bottom:32px;
+  }
+
+  .esc-rows { border-top: 1px solid var(--border); padding-top:24px; }
+  .esc-row {
+    display:flex; justify-content:space-between; align-items:center;
+    padding: 9px 0;
+    border-bottom: 1px solid rgba(0,0,0,0.05);
+    font-size:13px;
+  }
+  .esc-row .name { color: #888; }
+  .esc-row .val { color:var(--text); font-variant-numeric: tabular-nums; }
+  .esc-row .val.neg { color:#c05050; }
+  .esc-row .val.pos { color:#2E5634; font-weight:600; }
+  .esc-row.total { margin-top:8px; border-top: 1px solid var(--border); border-bottom:none; padding-top:16px; }
+  .esc-row.total .name { color:var(--text); font-size:12px; letter-spacing:1px; text-transform:uppercase; }
+  .esc-row.total .val { color:var(--green); font-size:15px; font-weight:600; }
+
+  .chart-wrap {
+    background: var(--white); border: 1px solid var(--border);
+    padding: 40px; margin-bottom: 48px;
+  }
+  .chart-wrap h4 {
+    font-size:11px; letter-spacing:2px; text-transform:uppercase;
+    color:var(--green); opacity:0.7; margin-bottom:32px;
+  }
+
+  .anual-grid {
+    display:grid; grid-template-columns:repeat(3,1fr); gap:2px;
+    background:var(--border); border:1px solid var(--border);
+  }
+  .anual-card { background:var(--white); padding:28px; }
+  .anual-card h5 { font-size:10px; letter-spacing:3px; text-transform:uppercase; color:var(--green); opacity:0.7; margin-bottom:16px; }
+  .anual-card .val { font-size:28px; font-family:'Bakbak One',sans-serif; font-weight:400; color:var(--green); letter-spacing:0px; }
+  .anual-card .sub { font-size:11px; color:#999; margin-top:4px; }
+
+  /* ── RECOMENDACIÓN ── */
+  .reco-box {
+    background: var(--green-light);
+    border: 1px solid var(--border);
+    padding: 48px; margin-bottom:32px;
+    position:relative;
+  }
+  .reco-box::before {
+    content:''; position:absolute; top:0; left:0; right:0; height:3px;
+    background: linear-gradient(90deg, transparent, var(--green), transparent);
+  }
+  .reco-box h3 { font-size:22px; font-family:'Bakbak One',sans-serif; font-weight:400; margin-bottom:20px; color:var(--green-dark); }
+  .reco-box p { font-size:15px; color:#555; line-height:1.8; margin-bottom:12px; }
+  .reco-box strong { color:var(--gold); }
+
+  .reco-steps {
+    display:grid; grid-template-columns:repeat(3,1fr); gap:2px;
+    background:var(--border); border:1px solid var(--border);
+  }
+  .reco-step { background:var(--white); padding:28px; }
+  .reco-step .num {
+    font-size:48px; font-family:'Bakbak One',sans-serif; font-weight:400; color:rgba(46,86,52,0.15);
+    letter-spacing:0px; line-height:1; margin-bottom:12px;
+  }
+  .reco-step h4 { font-size:13px; color:var(--green-dark); margin-bottom:8px; font-weight:600; }
+  .reco-step p { font-size:13px; color:#777; line-height:1.6; }
+
+  /* ── FOOTER ── */
+  footer {
+    border-top: 1px solid var(--border);
+    padding: 40px 48px;
+    display:flex; justify-content:space-between; align-items:center;
+    font-size:12px; color:#444; letter-spacing:1px;
+  }
+
+  /* ── UTILS ── */
+  .fade-in { opacity:0; transform:translateY(24px); transition: opacity .7s ease, transform .7s ease; }
+  .fade-in.visible { opacity:1; transform:none; }
+
+  @media (max-width:768px) {
+    nav { padding:16px 24px; }
+    .nav-links { display:none; }
+    .hero { padding: 0 24px 60px; }
+    .hero-stats { grid-template-columns:1fr; }
+    section { padding: 72px 24px; }
+    .depto-grid, .mercado-cards, .escenarios,
+    .anual-grid, .reco-steps { grid-template-columns:1fr; }
+    .amenidades { grid-template-columns:1fr; }
+    footer { flex-direction:column; gap:12px; text-align:center; }
+  }
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <div class="nav-logo" style="font-family:'Bakbak One',sans-serif; color:var(--green);">DISTRITO BA</div>
+
+  <div class="nav-links">
+    <a href="#depto">El Loft</a>
+    <a href="#mercado">Mercado</a>
+    <a href="#proyeccion">Escenarios</a>
+    <a href="#proyeccion-12m">Proyección 12M</a>
+    <a href="#recomendacion">Estrategia</a>
+  </div>
+</nav>
+<div class="disclaimer-bar">
+  <strong>Aviso:</strong> Este documento es una proyección y un plan de trabajo orientativo. Los resultados reales dependen de variables de mercado y serán validados en operación.
+</div>
+
+<!-- HERO -->
+<div class="hero">
+  <div class="hero-grid"></div>
+  <div class="hero-badge"><span></span>DISTRITO BA · Análisis de Inversión Airbnb</div>
+  <h1>Loft<br><em>Palermo</em></h1>
+  <p class="hero-sub">José A. Cabrera &amp; Pringles · Buenos Aires</p>
+  <div class="hero-stats">
+    <div class="hero-stat">
+      <div class="val" data-count="68">0</div>
+      <div class="lbl">USD / noche base</div>
+    </div>
+    <div class="hero-stat">
+      <div class="val" data-count="80">0</div>
+      <div class="lbl">% ocupación proyectada</div>
+    </div>
+    <div class="hero-stat">
+      <div class="val" data-count="1187">0</div>
+      <div class="lbl">USD neto / mes</div>
+    </div>
+  </div>
+  <div class="scroll-hint">Scroll</div>
+</div>
+
+<!-- EL DEPTO -->
+<section id="depto">
+  <div class="section-label">01 · El Loft</div>
+  <h2>Diseño industrial.<br>Experiencia diferencial.</h2>
+
+  <div class="depto-grid fade-in">
+    <div class="depto-desc">
+      <p>Muy próximo a <strong>Palermo Soho</strong>, con fácil acceso a las mejores propuestas gastronómicas y culturales del barrio, este loft combina una estética industrial moderna con confort contemporáneo.</p>
+      <p>Pensado para <strong>3 huéspedes</strong>, ofrece una experiencia completa: desde el espacio de trabajo con escritorio equipado hasta el <strong>balcón con Kamado</strong> — un diferencial único en la categoría.</p>
+      <p>El arte expuesto con opción de compra a través de QRs crea una experiencia inmersiva que genera valor agregado y fidelización de huéspedes.</p>
+      <div class="diferenciador">
+        <strong style="color:var(--green)">Diferencial competitivo:</strong> La combinación de arte original, Kamado en balcón y diseño industrial auténtico posiciona este loft en un segmento premium que justifica un precio un 25–35% por encima del promedio de la zona.
+      </div>
+    </div>
+
+    <div>
+      <div class="amenidades">
+        <div class="amenidad"><span class="icon">⚡</span>WiFi de alta velocidad</div>
+        <div class="amenidad"><span class="icon">❄️</span>Aire acondicionado</div>
+        <div class="amenidad"><span class="icon">🔥</span>Balcón con Kamado</div>
+        <div class="amenidad"><span class="icon">🌿</span>Living de exterior</div>
+        <div class="amenidad"><span class="icon">💻</span>Escritorio de trabajo</div>
+        <div class="amenidad"><span class="icon">🍳</span>Cocina equipada</div>
+        <div class="amenidad"><span class="icon">🛏</span>Blanquería completa</div>
+        <div class="amenidad"><span class="icon">🎨</span>Arte + QR de compra</div>
+        <div class="amenidad"><span class="icon">🏗</span>Diseño industrial</div>
+        <div class="amenidad"><span class="icon">👥</span>Hasta 3 huéspedes</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- MERCADO -->
+<section id="mercado" style="background:var(--cream); max-width:100%; padding: 100px 0;">
+  <div style="max-width:1100px; margin:0 auto; padding:0 48px;">
+    <div class="section-label">02 · Análisis de Mercado</div>
+    <h2>Palermo lidera el<br>mercado de temporarios.</h2>
+
+    <div class="mercado-cards fade-in">
+      <div class="mercado-card">
+        <h4>Oferta activa en CABA</h4>
+        <div class="big">24<span class="unit">K</span></div>
+        <p>unidades publicadas en Airbnb. Palermo concentra el mayor volumen con 6.575 listings y el ticket promedio más alto de la ciudad.</p>
+      </div>
+      <div class="mercado-card">
+        <h4>Precio rango Palermo</h4>
+        <div class="big">45<span class="unit">–90</span></div>
+        <p>USD por noche para lofts y departamentos equipados en Palermo Soho. Propiedades premium con amenidades diferenciales operan en la banda alta.</p>
+      </div>
+      <div class="mercado-card">
+        <h4>Ocupación Buenos Aires</h4>
+        <div class="big">73<span class="unit">%</span></div>
+        <p>promedio anual según Airbtics (ene 2026). Palermo, como barrio de mayor demanda, tiende a superar el promedio de la ciudad.</p>
+      </div>
+    </div>
+
+    <div class="trend-bar fade-in">
+      <h4>Demanda por barrio — participación en el mercado de temporarios CABA</h4>
+      <div class="barrios">
+        <div class="barrio">
+          <span class="barrio-name">Palermo</span>
+          <div class="barrio-track"><div class="barrio-fill" style="width:0%" data-width="100%"></div></div>
+          <span class="barrio-val">29%</span>
+        </div>
+        <div class="barrio">
+          <span class="barrio-name">Recoleta</span>
+          <div class="barrio-track"><div class="barrio-fill" style="width:0%" data-width="72%"></div></div>
+          <span class="barrio-val">21%</span>
+        </div>
+        <div class="barrio">
+          <span class="barrio-name">San Nicolás</span>
+          <div class="barrio-track"><div class="barrio-fill" style="width:0%" data-width="48%"></div></div>
+          <span class="barrio-val">14%</span>
+        </div>
+        <div class="barrio">
+          <span class="barrio-name">Belgrano</span>
+          <div class="barrio-track"><div class="barrio-fill" style="width:0%" data-width="28%"></div></div>
+          <span class="barrio-val">8%</span>
+        </div>
+        <div class="barrio">
+          <span class="barrio-name">Resto CABA</span>
+          <div class="barrio-track"><div class="barrio-fill" style="width:0%" data-width="20%"></div></div>
+          <span class="barrio-val">28%</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- PROYECCIÓN -->
+<section id="proyeccion">
+  <div class="section-label">03 · Proyección de Ingresos</div>
+  <h2>Tres escenarios.<br>Un negocio rentable.</h2>
+
+  <div class="escenarios fade-in">
+    <!-- PESIMISTA -->
+    <div class="escenario">
+      <div class="esc-tag">Escenario Conservador</div>
+      <div class="esc-occ">Ocupación: 75% · 22 noches/mes</div>
+      <div class="esc-precio">Precio: USD 45 / noche</div>
+      <div class="esc-main"><span class="curr">$</span>661</div>
+      <div class="esc-sub">USD neto / mes</div>
+      <div class="esc-rows">
+        <div class="esc-row">
+          <span class="name">Ingreso bruto</span>
+          <span class="val">$1.012</span>
+        </div>
+        <div class="esc-row">
+          <span class="name">Comisión Airbnb (15%)</span>
+          <span class="val neg">– $152</span>
+        </div>
+        <div class="esc-row">
+          <span class="name">Expensas y servicios</span>
+          <span class="val neg">– $200</span>
+        </div>
+        <div class="esc-row total">
+          <span class="name">Resultado neto (sin PM)</span>
+          <span class="val">$661 / mes</span>
+        </div>
+        <div class="esc-row">
+          <span class="name">Con Property Manager</span>
+          <span class="val">$458 / mes</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- BASE -->
+    <div class="escenario base">
+      <div class="esc-tag">Escenario Base</div>
+      <div class="esc-occ">Ocupación: 80% · 24 noches/mes</div>
+      <div class="esc-precio">Precio: USD 68 / noche</div>
+      <div class="esc-main"><span class="curr">$</span>1.187</div>
+      <div class="esc-sub">USD neto / mes</div>
+      <div class="esc-rows">
+        <div class="esc-row">
+          <span class="name">Ingreso bruto</span>
+          <span class="val">$1.632</span>
+        </div>
+        <div class="esc-row">
+          <span class="name">Comisión Airbnb (15%)</span>
+          <span class="val neg">– $245</span>
+        </div>
+        <div class="esc-row">
+          <span class="name">Expensas y servicios</span>
+          <span class="val neg">– $200</span>
+        </div>
+        <div class="esc-row total">
+          <span class="name">Resultado neto (sin PM)</span>
+          <span class="val pos">$1.187 / mes</span>
+        </div>
+        <div class="esc-row">
+          <span class="name">Con Property Manager</span>
+          <span class="val">$861 / mes</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- OPTIMISTA -->
+    <div class="escenario">
+      <div class="esc-tag">Escenario Optimista</div>
+      <div class="esc-occ">Ocupación: 95% · 28 noches/mes</div>
+      <div class="esc-precio">Precio: USD 82 / noche</div>
+      <div class="esc-main"><span class="curr">$</span>1.786</div>
+      <div class="esc-sub">USD neto / mes</div>
+      <div class="esc-rows">
+        <div class="esc-row">
+          <span class="name">Ingreso bruto</span>
+          <span class="val">$2.337</span>
+        </div>
+        <div class="esc-row">
+          <span class="name">Comisión Airbnb (15%)</span>
+          <span class="val neg">– $351</span>
+        </div>
+        <div class="esc-row">
+          <span class="name">Expensas y servicios</span>
+          <span class="val neg">– $200</span>
+        </div>
+        <div class="esc-row total">
+          <span class="name">Resultado neto (sin PM)</span>
+          <span class="val pos">$1.786 / mes</span>
+        </div>
+        <div class="esc-row">
+          <span class="name">Con Property Manager</span>
+          <span class="val">$1.319 / mes</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CHART -->
+  <div class="chart-wrap fade-in">
+    <h4>Comparativa anual — ingresos brutos vs. resultado neto (USD)</h4>
+    <canvas id="chart" height="90"></canvas>
+  </div>
+
+  <!-- ANUAL -->
+  <div class="anual-grid fade-in">
+    <div class="anual-card">
+      <h5>Conservador · Anual sin PM</h5>
+      <div class="val">$7.928</div>
+      <div class="sub">USD / año · con PM: $5.498</div>
+    </div>
+    <div class="anual-card" style="border-top:3px solid var(--green)">
+      <h5>Base · Anual sin PM</h5>
+      <div class="val">$14.246</div>
+      <div class="sub">USD / año · con PM: $10.330</div>
+    </div>
+    <div class="anual-card">
+      <h5>Optimista · Anual sin PM</h5>
+      <div class="val">$21.437</div>
+      <div class="sub">USD / año · con PM: $15.829</div>
+    </div>
+  </div>
+</section>
+
+<!-- PROYECCIÓN 12M -->
+<section id="proyeccion-12m" style="background:var(--cream); max-width:100%; padding:100px 0;">
+  <div style="max-width:1100px; margin:0 auto; padding:0 48px;">
+    <div class="section-label">04 · Proyección 12 Meses</div>
+    <h2>Escenario base mes a mes,<br>con estacionalidad aplicada.</h2>
+    <p style="color:#777; font-size:14px; margin-bottom:40px;">Precio: USD 68/noche · Ocupación base 80% ajustada por demanda mensual · Comisión Airbnb 15% · Expensas USD 200/mes fijos</p>
+
+    <div class="tabla-12m-wrap fade-in">
+      <table class="tabla-12m">
+        <thead>
+          <tr>
+            <th>Concepto</th>
+            <th>Ene</th><th>Feb</th><th>Mar</th><th>Abr</th>
+            <th>May</th><th>Jun</th><th>Jul</th><th>Ago</th>
+            <th>Sep</th><th>Oct</th><th>Nov</th><th>Dic</th>
+            <th style="color:var(--gold)">Total</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Noches ocupadas</td>
+            <td class="high">26</td><td class="high">28</td><td>25</td><td>23</td>
+            <td class="low">20</td><td class="low">20</td><td class="high">26</td><td>22</td>
+            <td>22</td><td>22</td><td class="high">26</td><td class="high">28</td>
+            <td>288</td>
+          </tr>
+          <tr>
+            <td>Ingreso bruto</td>
+            <td>$1.795</td><td>$1.877</td><td>$1.714</td><td>$1.550</td>
+            <td class="low">$1.387</td><td class="low">$1.387</td><td>$1.795</td><td>$1.469</td>
+            <td>$1.469</td><td>$1.469</td><td>$1.795</td><td>$1.877</td>
+            <td>$19.584</td>
+          </tr>
+          <tr>
+            <td>(-) Comisión Airbnb 15%</td>
+            <td class="neg">–$269</td><td class="neg">–$282</td><td class="neg">–$257</td><td class="neg">–$233</td>
+            <td class="neg">–$208</td><td class="neg">–$208</td><td class="neg">–$269</td><td class="neg">–$220</td>
+            <td class="neg">–$220</td><td class="neg">–$220</td><td class="neg">–$269</td><td class="neg">–$282</td>
+            <td class="neg">–$2.937</td>
+          </tr>
+          <tr>
+            <td>(-) Expensas y servicios</td>
+            <td class="neg">–$200</td><td class="neg">–$200</td><td class="neg">–$200</td><td class="neg">–$200</td>
+            <td class="neg">–$200</td><td class="neg">–$200</td><td class="neg">–$200</td><td class="neg">–$200</td>
+            <td class="neg">–$200</td><td class="neg">–$200</td><td class="neg">–$200</td><td class="neg">–$200</td>
+            <td class="neg">–$2.400</td>
+          </tr>
+          <tr class="resultado">
+            <td>Resultado neto (sin PM)</td>
+            <td>$1.326</td><td>$1.395</td><td>$1.257</td><td>$1.118</td>
+            <td>$979</td><td>$979</td><td>$1.326</td><td>$1.048</td>
+            <td>$1.048</td><td>$1.048</td><td>$1.326</td><td>$1.395</td>
+            <td>$14.246</td>
+          </tr>
+          <tr>
+            <td style="color:#666">Resultado neto (con PM 20%)</td>
+            <td>$967</td><td>$1.020</td><td>$914</td><td>$808</td>
+            <td>$702</td><td>$702</td><td>$967</td><td>$755</td>
+            <td>$755</td><td>$755</td><td>$967</td><td>$1.020</td>
+            <td>$10.330</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="chart-wrap fade-in" style="padding:0; overflow:hidden; margin-top:0;">
+      <div style="padding:24px 32px 16px; border-bottom:1px solid var(--border);">
+        <div style="font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--green);opacity:.7;margin-bottom:6px;">ANÁLISIS DE SENSIBILIDAD</div>
+        <div style="font-size:14px;color:#555;">Resultado neto mensual sin PM (USD) · eje X = precio/noche · eje Y = ocupación</div>
+      </div>
+      <div style="overflow-x:auto;">
+        <table style="width:100%;border-collapse:collapse;">
+          <tbody><tr><th style="background:#1e3b22;color:#F2EFEB;padding:10px 12px;font-size:10px;letter-spacing:2px;text-transform:uppercase;font-weight:400;border:1px solid rgba(46,86,52,0.2);white-space:nowrap;">Ocup. \ Precio</th><th style="background:#2a5030;color:#F2EFEB;padding:10px 12px;font-size:11px;letter-spacing:1px;font-weight:400;border:1px solid rgba(46,86,52,0.2);text-align:center;">USD&nbsp;45</th><th style="background:#2a5030;color:#F2EFEB;padding:10px 12px;font-size:11px;letter-spacing:1px;font-weight:400;border:1px solid rgba(46,86,52,0.2);text-align:center;">USD&nbsp;50</th><th style="background:#2a5030;color:#F2EFEB;padding:10px 12px;font-size:11px;letter-spacing:1px;font-weight:400;border:1px solid rgba(46,86,52,0.2);text-align:center;">USD&nbsp;55</th><th style="background:#2a5030;color:#F2EFEB;padding:10px 12px;font-size:11px;letter-spacing:1px;font-weight:400;border:1px solid rgba(46,86,52,0.2);text-align:center;">USD&nbsp;60</th><th style="background:#2a5030;color:#F2EFEB;padding:10px 12px;font-size:11px;letter-spacing:1px;font-weight:400;border:1px solid rgba(46,86,52,0.2);text-align:center;">USD&nbsp;65</th><th style="background:#2E5634;color:#F2EFEB;padding:10px 12px;font-size:11px;letter-spacing:1px;font-weight:600;border:1px solid rgba(46,86,52,0.2);text-align:center;">USD&nbsp;68</th><th style="background:#2a5030;color:#F2EFEB;padding:10px 12px;font-size:11px;letter-spacing:1px;font-weight:400;border:1px solid rgba(46,86,52,0.2);text-align:center;">USD&nbsp;70</th><th style="background:#2a5030;color:#F2EFEB;padding:10px 12px;font-size:11px;letter-spacing:1px;font-weight:400;border:1px solid rgba(46,86,52,0.2);text-align:center;">USD&nbsp;75</th><th style="background:#2a5030;color:#F2EFEB;padding:10px 12px;font-size:11px;letter-spacing:1px;font-weight:400;border:1px solid rgba(46,86,52,0.2);text-align:center;">USD&nbsp;80</th><th style="background:#2a5030;color:#F2EFEB;padding:10px 12px;font-size:11px;letter-spacing:1px;font-weight:400;border:1px solid rgba(46,86,52,0.2);text-align:center;">USD&nbsp;85</th><th style="background:#2a5030;color:#F2EFEB;padding:10px 12px;font-size:11px;letter-spacing:1px;font-weight:400;border:1px solid rgba(46,86,52,0.2);text-align:center;">USD&nbsp;90</th></tr></tbody>
+          <tbody><tr><td style="background:#f5f5f5;color:#444;padding:10px 14px;font-size:12px;font-weight:400;border:1px solid rgba(46,86,52,0.15);white-space:nowrap;text-align:left;">35%</td><td style="background:rgb(234,245,235);color:#1B3E1F;padding:10px 12px;font-size:12px;text-align:center;border:1px solid rgba(46,86,52,0.1);font-weight:400;font-variant-numeric:tabular-nums;">$202</td><td style="background:rgb(227,242,229);color:#1B3E1F;padding:10px 12px;font-size:12px;text-align:center;border:1px solid rgba(46,86,52,0.1);font-weight:400;font-variant-numeric:tabular-nums;">$246</td><td style="background:rgb(220,238,222);color:#1B3E1F;padding:10px 12px;font-size:12px;text-align:center;border:1px solid rgba(46,86,52,0.1);font-weight:400;font-variant-numeric:tabular-nums;">$291</td><td style="background:rgb(213,235,215);color:#1B3E1F;padding:10px 12px;font-size:12px;text-align:center;border:1px solid rgba(46,86,52,0.1);font-weight:400;font-variant-numeric:tabular-nums;">$336</td><td style="background:rgb(207,232,209);color:#1B3E1F;padding:10px 12px;font-size:12px;text-align:center;border:1px solid rgba(46,86,52,0.1);font-weight:400;font-variant-numeric:tabular-nums;">$380</td><td style="background:rgb(203,230,205);color:#1B3E1F;padding:10px 12px;font-size:12px;text-align:center;border:1px solid rgba(46,86,52,0.1);font-weight:400;font-variant-numeric:tabular-nums;">$407</td><td style="background:rgb(200,228,202);color:#1B3E1F;padding:10px 12px;font-size:12px;text-align:center;border:1px solid rgba(46,86,52,0.1);font-weight:400;font-variant-numeric:tabular-nums;">$425</td><td style="background:rgb(193,225,196);color:#1B3E1F;padding:10px 12px;font-size:12px;text-align:center;border:1px solid rgba(46,86,52,0.1);font-weight:400;font-variant-numeric:tabular-nums;">$469</td><td style="background:rgb(186,222,189);color:#1B3E1F;padding:10px 12px;font-size:12px;text-align:center;border:1px solid rgba(46,86,52,0.1);font-weight:400;font-variant-numeric:tabular-nums;">$514</td><td style="background:rgb(179,218,183);color:#1B3E1F;padding:10px 12px;font-size:12px;text-align:center;border:1px solid rgba(46,86,52,0.1);font-weight:400;font-variant-numeric:tabular-nums;">$559</td><td style="background:rgb(172,215,176);color:#1B3E1F;padding:10px 12px;font-size:12px;text-align:center;border:1px solid rgba(46,86,52,0.1);font-weight:400;font-variant-numeric:tabular-nums;">$603</td></tr></tbody>
+          <tbody><tr><td style="background:#f5f5f5;color:#444;padding:10px 14px;font-size:12px;font-weight:400;border:1px solid rgba(46,86,52,0.15);white-space:nowrap;text-align:left;">40%</td><td style="background:rgb(225,241,227);color:#1B3E1F;padding:10px 12px;font-size:12px;text-align:center;border:1px solid rgba(46,86,52,0.1);font-weight:400;font-variant-numeric:tabular-nums;">$259</td><td style="background:rgb(217,237,219);color:#1B3E1F;padding:10px 12px;font-size:12px;text-align:center;border:1px solid rgba(46,86,52,0.1);font-weight:400;font-variant-numeric:tabular-nums;">$310</td><td style="background:rgb(210,233,212);color:#1B3E1F;padding:10px 12px;font-size:12px;text-align:center;border:1px solid rgba(46,86,52,0.1);font-weight:400;font-variant-numeric:tabular-nums;">$361</td><td style="background:rgb(202,229,204);color:#1B3E1F;padding:10px 12px;font-size:12px;text-align:center;border:1px solid rgba(46,86,52,0.1);font-weight:400;font-variant-numeric:tabular-nums;">$412</td><td style="background:rgb(194,226,197);color:#1B3E1F;padding:10px 12px;font-size:12px;text-align:center;border:1px solid rgba(46,86,52,0.1);font-weight:400;font-variant-numeric:tabular-nums;">$463</td><td style="background:rgb(189,223,192);color:#1B3E1F;padding:10px 12px;font-size:12px;text-align:center;border:1px solid rgba(46,86,52,0.1);font-weight:400;font-variant-numeric:tabular-nums;">$494</td><td style="background:rgb(186,222,189);color:#1B3E1F;padding:10px 12px;font-size:12px;text-align:center;border:1px solid rgba(46,86,52,0.1);font-weight:400;font-variant-numeric:tabular-nums;">$514</td><td style="background:rgb(178,218,182);color:#1B3E1F;padding:10px 12px;font-size:12px;text-align:center;border:1px solid rgba(46,86,52,0.1);font-weight:400;font-variant-numeric:tabular-nums;">$565</td><td style="background:rgb(170,214,174);color:#1B3E1F;padding:10px 12px;font-size:12px;text-align:center;border:1px solid rgba(46,86,52,0.1);font-weight:400;font-variant-numeric:tabular-nums;">$616</td><td style="background:rgb(161,207,165);color:#1B3E1F;padding:10px 12px;font-size:12px;text-align:center;border:1px solid rgba(46,86,52,0.1);font-weight:400;font-variant-numeric:tabular-nums;">$667</td><td style="background:rgb(150,198,155);color:#1B3E1F;padding:10px 12px;font-size:12px;text-align:center;border:1px solid rgba(46,86,52,0.1);font-weight:400;font-variant-numeric:tabular-nums;">$718</td></tr></tbody>
+          <tbody><tr><td style="background:#f5f5f5;color:#444;padding:10px 14px;font-size:12px;font-weight:400;border:1px solid rgba(46,86,52,0.15);white-space:nowrap;text-align:left;">45%</td><td style="background:rgb(217,237,218);color:#1B3E1F;padding:10px 12px;font-size:12px;text-align:center;border:1px solid rgba(46,86,52,0.1);font-weight:400;font-variant-numeric:tabular-nums;">$316</td><td style="background:rgb(208,232,210);color:#1B3E1F;padding:10px 12px;font-size:12px;text-align:center;border:1px solid rgba(46,86,52,0.1);font-weight:400;font-variant-numeric:tabular-nums;">$374</td><td style="background:rgb(199,228,201);color:#1B3E1F;padding:10px 12px;font-size:12px;text-align:center;border:1px solid rgba(46,86,52,0.1);font-weight:400;font-variant-numeric:tabular-nums;">$431</td><td style="background:rgb(190,224,193);color:#1B3E1F;padding:10px 12px;font-size:12px;text-align:center;border:1px solid rgba(46,86,52,0.1);font-weight:400;font-variant-numeric:tabular-nums;">$488</td><td style="background:rgb(181,219,185);color:#1B3E1F;padding:10px 12px;font-size:12px;text-align:center;border:1px solid rgba(46,86,52,0.1);font-weight:400;font-variant-numeric:tabular-nums;">$546</td><td style="background:rgb(176,217,180);color:#1B3E1F;padding:10px 12px;font-size:12px;text-align:center;border:1px solid rgba(46,86,52,0.1);font-weight:400;font-variant-numeric:tabular-nums;">$580</td><td style="background:rgb(172,215,176);color:#1B3E1F;padding:10px 12px;font-size:12px;text-align:center;border:1px solid rgba(46,86,52,0.1);font-weight:400;font-variant-numeric:tabular-nums;">$603</td><td style="background:rgb(162,208,166);color:#1B3E1F;padding:10px 12px;font-size:12px;text-align:center;border:1px solid rgba(46,86,52,0.1);font-weight:400;font-variant-numeric:tabular-nums;">$661</td><td style="background:rgb(150,198,155);color:#1B3E1F;padding:10px 12px;font-size:12px;text-align:center;border:1px solid rgba(46,86,52,0.1);font-weight:400;font-variant-numeric:tabular-nums;">$718</td><td style="background:rgb(138,189,143);color:#1B3E1F;padding:10px 12px;font-size:12px;text-align:center;border:1px solid rgba(46,86,52,0.1);font-weight:400;font-variant-numeric:tabular-nums;">$775</td><td style="background:rgb(126,179,131);color:#1B3E1F;padding:10px 12px;font-size:12px;text-align:center;border:1px solid rgba(46,86,52,0.1);font-weight:400;font-variant-numeric:tabular-nums;">$833</td></tr></tbody>
+          <tbody><tr><td style="background:#f5f5f5;color:#444;padding:10px 14px;font-size:12px;font-weight:400;border:1px solid rgba(46,86,52,0.15);white-space:nowrap;text-align:left;">50%</td><td style="background:rgb(208,232,210);color:#1B3E1F;padding:10px 12px;font-size:12px;text-align:center;border:1px solid rgba(46,86,52,0.1);font-weight:400;font-variant-numeric:tabular-nums;">$374</td><td style="background:rgb(198,227,200);color:#1B3E1F;padding:10px 12px;font-size:12px;text-align:center;border:1px solid rgba(46,86,52,0.1);font-weight:400;font-variant-numeric:tabular-nums;">$438</td><td style="background:rgb(188,223,191);color:#1B3E1F;padding:10px 12px;font-size:12px;text-align:center;border:1px solid rgba(46,86,52,0.1);font-weight:400;font-variant-numeric:tabular-nums;">$501</td><td style="background:rgb(178,218,182);color:#1B3E1F;padding:10px 12px;font-size:12px;text-align:center;border:1px solid rgba(46,86,52,0.1);font-weight:400;font-variant-numeric:tabular-nums;">$565</td><td style="background:rgb(168,213,172);color:#1B3E1F;padding:10px 12px;font-size:12px;text-align:center;border:1px solid rgba(46,86,52,0.1);font-weight:400;font-variant-numeric:tabular-nums;">$629</td><td style="background:rgb(161,207,165);color:#1B3E1F;padding:10px 12px;font-size:12px;text-align:center;border:1px solid rgba(46,86,52,0.1);font-weight:400;font-variant-numeric:tabular-nums;">$667</td><td style="background:rgb(155,203,160);color:#1B3E1F;padding:10px 12px;font-size:12px;text-align:center;border:1px solid rgba(46,86,52,0.1);font-weight:400;font-variant-numeric:tabular-nums;">$692</td><td style="background:rgb(142,192,147);color:#1B3E1F;padding:10px 12px;font-size:12px;text-align:center;border:1px solid rgba(46,86,52,0.1);font-weight:400;font-variant-numeric:tabular-nums;">$756</td><td style="background:rgb(129,181,134);color:#1B3E1F;padding:10px 12px;font-size:12px;text-align:center;border:1px solid rgba(46,86,52,0.1);font-weight:400;font-variant-numeric:tabular-nums;">$820</td><td style="background:rgb(115,170,121);color:#FFFFFF;padding:10px 12px;font-size:12px;text-align:center;border:1px solid rgba(46,86,52,0.1);font-weight:400;font-variant-numeric:tabular-nums;">$884</td><td style="background:rgb(102,159,108);color:#FFFFFF;padding:10px 12px;font-size:12px;text-align:center;border:1px solid rgba(46,86,52,0.1);font-weight:400;font-variant-numeric:tabular-nums;">$948</td></tr></tbody>
+          <tbody><tr><td style="background:#f5f5f5;color:#444;padding:10px 14px;font-size:12px;font-weight:400;border:1px solid rgba(46,86,52,0.15);white-space:nowrap;text-align:left;">55%</td><td style="background:rgb(199,228,201);color:#1B3E1F;padding:10px 12px;font-size:12px;text-align:center;border:1px solid rgba(46,86,52,0.1);font-weight:400;font-variant-numeric:tabular-nums;">$431</td><td style="background:rgb(188,223,191);color:#1B3E1F;padding:10px 12px;font-size:12px;text-align:center;border:1px solid rgba(46,86,52,0.1);font-weight:400;font-variant-numeric:tabular-nums;">$501</td><td style="background:rgb(177,218,181);color:#1B3E1F;padding:10px 12px;font-size:12px;text-align:center;border:1px solid rgba(46,86,52,0.1);font-weight:400;font-variant-numeric:tabular-nums;">$571</td><td style="background:rgb(166,211,170);color:#1B3E1F;padding:10px 12px;font-size:12px;text-align:center;border:1px solid rgba(46,86,52,0.1);font-weight:400;font-variant-numeric:tabular-nums;">$642</td><td style="background:rgb(151,199,156);color:#1B3E1F;padding:10px 12px;font-size:12px;text-align:center;border:1px solid rgba(46,86,52,0.1);font-weight:400;font-variant-numeric:tabular-nums;">$712</td><td style="background:rgb(143,192,147);color:#1B3E1F;padding:10px 12px;font-size:12px;text-align:center;border:1px solid rgba(46,86,52,0.1);font-weight:400;font-variant-numeric:tabular-nums;">$754</td><td style="background:rgb(137,188,142);color:#1B3E1F;padding:10px 12px;font-size:12px;text-align:center;border:1px solid rgba(46,86,52,0.1);font-weight:400;font-variant-numeric:tabular-nums;">$782</td><td style="background:rgb(122,176,128);color:#FFFFFF;padding:10px 12px;font-size:12px;text-align:center;border:1px solid rgba(46,86,52,0.1);font-weight:400;font-variant-numeric:tabular-nums;">$852</td><td style="background:rgb(107,164,113);color:#FFFFFF;padding:10px 12px;font-size:12px;text-align:center;border:1px solid rgba(46,86,52,0.1);font-weight:400;font-variant-numeric:tabular-nums;">$922</td><td style="background:rgb(93,152,99);color:#FFFFFF;padding:10px 12px;font-size:12px;text-align:center;border:1px solid rgba(46,86,52,0.1);font-weight:400;font-variant-numeric:tabular-nums;">$992</td><td style="background:rgb(78,140,85);color:#FFFFFF;padding:10px 12px;font-size:12px;text-align:center;border:1px solid rgba(46,86,52,0.1);font-weight:400;font-variant-numeric:tabular-nums;">$1,062</td></tr></tbody>
+          <tbody><tr><td style="background:#f5f5f5;color:#444;padding:10px 14px;font-size:12px;font-weight:400;border:1px solid rgba(46,86,52,0.15);white-space:nowrap;text-align:left;">60%</td><td style="background:rgb(190,224,193);color:#1B3E1F;padding:10px 12px;font-size:12px;text-align:center;border:1px solid rgba(46,86,52,0.1);font-weight:400;font-variant-numeric:tabular-nums;">$488</td><td style="background:rgb(178,218,182);color:#1B3E1F;padding:10px 12px;font-size:12px;text-align:center;border:1px solid rgba(46,86,52,0.1);font-weight:400;font-variant-numeric:tabular-nums;">$565</td><td style="background:rgb(166,211,170);color:#1B3E1F;padding:10px 12px;font-size:12px;text-align:center;border:1px solid rgba(46,86,52,0.1);font-weight:400;font-variant-numeric:tabular-nums;">$642</td><td style="background:rgb(150,198,155);color:#1B3E1F;padding:10px 12px;font-size:12px;text-align:center;border:1px solid rgba(46,86,52,0.1);font-weight:400;font-variant-numeric:tabular-nums;">$718</td><td style="background:rgb(134,186,139);color:#1B3E1F;padding:10px 12px;font-size:12px;text-align:center;border:1px solid rgba(46,86,52,0.1);font-weight:400;font-variant-numeric:tabular-nums;">$794</td><td style="background:rgb(125,178,130);color:#1B3E1F;padding:10px 12px;font-size:12px;text-align:center;border:1px solid rgba(46,86,52,0.1);font-weight:400;font-variant-numeric:tabular-nums;">$840</td><td style="background:rgb(118,172,124);color:#FFFFFF;padding:10px 12px;font-size:12px;text-align:center;border:1px solid rgba(46,86,52,0.1);font-weight:400;font-variant-numeric:tabular-nums;">$871</td><td style="background:rgb(102,159,108);color:#FFFFFF;padding:10px 12px;font-size:12px;text-align:center;border:1px solid rgba(46,86,52,0.1);font-weight:400;font-variant-numeric:tabular-nums;">$948</td><td style="background:rgb(86,147,93);color:#FFFFFF;padding:10px 12px;font-size:12px;text-align:center;border:1px solid rgba(46,86,52,0.1);font-weight:400;font-variant-numeric:tabular-nums;">$1,024</td><td style="background:rgb(75,135,81);color:#FFFFFF;padding:10px 12px;font-size:12px;text-align:center;border:1px solid rgba(46,86,52,0.1);font-weight:400;font-variant-numeric:tabular-nums;">$1,100</td><td style="background:rgb(68,124,74);color:#FFFFFF;padding:10px 12px;font-size:12px;text-align:center;border:1px solid rgba(46,86,52,0.1);font-weight:400;font-variant-numeric:tabular-nums;">$1,177</td></tr></tbody>
+          <tbody><tr><td style="background:#f5f5f5;color:#444;padding:10px 14px;font-size:12px;font-weight:400;border:1px solid rgba(46,86,52,0.15);white-space:nowrap;text-align:left;">65%</td><td style="background:rgb(181,219,185);color:#1B3E1F;padding:10px 12px;font-size:12px;text-align:center;border:1px solid rgba(46,86,52,0.1);font-weight:400;font-variant-numeric:tabular-nums;">$546</td><td style="background:rgb(168,213,172);color:#1B3E1F;padding:10px 12px;font-size:12px;text-align:center;border:1px solid rgba(46,86,52,0.1);font-weight:400;font-variant-numeric:tabular-nums;">$629</td><td style="background:rgb(151,199,156);color:#1B3E1F;padding:10px 12px;font-size:12px;text-align:center;border:1px solid rgba(46,86,52,0.1);font-weight:400;font-variant-numeric:tabular-nums;">$712</td><td style="background:rgb(134,186,139);color:#1B3E1F;padding:10px 12px;font-size:12px;text-align:center;border:1px solid rgba(46,86,52,0.1);font-weight:400;font-variant-numeric:tabular-nums;">$794</td><td style="background:rgb(117,171,122);color:#FFFFFF;padding:10px 12px;font-size:12px;text-align:center;border:1px solid rgba(46,86,52,0.1);font-weight:400;font-variant-numeric:tabular-nums;">$877</td><td style="background:rgb(106,163,112);color:#FFFFFF;padding:10px 12px;font-size:12px;text-align:center;border:1px solid rgba(46,86,52,0.1);font-weight:400;font-variant-numeric:tabular-nums;">$927</td><td style="background:rgb(99,157,106);color:#FFFFFF;padding:10px 12px;font-size:12px;text-align:center;border:1px solid rgba(46,86,52,0.1);font-weight:400;font-variant-numeric:tabular-nums;">$960</td><td style="background:rgb(82,143,89);color:#FFFFFF;padding:10px 12px;font-size:12px;text-align:center;border:1px solid rgba(46,86,52,0.1);font-weight:400;font-variant-numeric:tabular-nums;">$1,043</td><td style="background:rgb(72,131,79);color:#FFFFFF;padding:10px 12px;font-size:12px;text-align:center;border:1px solid rgba(46,86,52,0.1);font-weight:400;font-variant-numeric:tabular-nums;">$1,126</td><td style="background:rgb(65,120,71);color:#FFFFFF;padding:10px 12px;font-size:12px;text-align:center;border:1px solid rgba(46,86,52,0.1);font-weight:400;font-variant-numeric:tabular-nums;">$1,209</td><td style="background:rgb(58,109,63);color:#FFFFFF;padding:10px 12px;font-size:12px;text-align:center;border:1px solid rgba(46,86,52,0.1);font-weight:400;font-variant-numeric:tabular-nums;">$1,292</td></tr></tbody>
+          <tbody><tr><td style="background:#f5f5f5;color:#444;padding:10px 14px;font-size:12px;font-weight:400;border:1px solid rgba(46,86,52,0.15);white-space:nowrap;text-align:left;">70%</td><td style="background:rgb(172,215,176);color:#1B3E1F;padding:10px 12px;font-size:12px;text-align:center;border:1px solid rgba(46,86,52,0.1);font-weight:400;font-variant-numeric:tabular-nums;">$603</td><td style="background:rgb(155,203,160);color:#1B3E1F;padding:10px 12px;font-size:12px;text-align:center;border:1px solid rgba(46,86,52,0.1);font-weight:400;font-variant-numeric:tabular-nums;">$692</td><td style="background:rgb(137,188,142);color:#1B3E1F;padding:10px 12px;font-size:12px;text-align:center;border:1px solid rgba(46,86,52,0.1);font-weight:400;font-variant-numeric:tabular-nums;">$782</td><td style="background:rgb(118,172,124);color:#FFFFFF;padding:10px 12px;font-size:12px;text-align:center;border:1px solid rgba(46,86,52,0.1);font-weight:400;font-variant-numeric:tabular-nums;">$871</td><td style="background:rgb(99,157,106);color:#FFFFFF;padding:10px 12px;font-size:12px;text-align:center;border:1px solid rgba(46,86,52,0.1);font-weight:400;font-variant-numeric:tabular-nums;">$960</td><td style="background:rgb(88,148,95);color:#FFFFFF;padding:10px 12px;font-size:12px;text-align:center;border:1px solid rgba(46,86,52,0.1);font-weight:400;font-variant-numeric:tabular-nums;">$1,014</td><td style="background:rgb(81,142,88);color:#FFFFFF;padding:10px 12px;font-size:12px;text-align:center;border:1px solid rgba(46,86,52,0.1);font-weight:400;font-variant-numeric:tabular-nums;">$1,050</td><td style="background:rgb(71,130,78);color:#FFFFFF;padding:10px 12px;font-size:12px;text-align:center;border:1px solid rgba(46,86,52,0.1);font-weight:400;font-variant-numeric:tabular-nums;">$1,139</td><td style="background:rgb(63,117,69);color:#FFFFFF;padding:10px 12px;font-size:12px;text-align:center;border:1px solid rgba(46,86,52,0.1);font-weight:400;font-variant-numeric:tabular-nums;">$1,228</td><td style="background:rgb(55,105,61);color:#FFFFFF;padding:10px 12px;font-size:12px;text-align:center;border:1px solid rgba(46,86,52,0.1);font-weight:400;font-variant-numeric:tabular-nums;">$1,317</td><td style="background:rgb(47,93,53);color:#FFFFFF;padding:10px 12px;font-size:12px;text-align:center;border:1px solid rgba(46,86,52,0.1);font-weight:400;font-variant-numeric:tabular-nums;">$1,406</td></tr></tbody>
+          <tbody><tr><td style="background:#f5f5f5;color:#444;padding:10px 14px;font-size:12px;font-weight:400;border:1px solid rgba(46,86,52,0.15);white-space:nowrap;text-align:left;">75%</td><td style="background:rgb(162,208,166);color:#1B3E1F;padding:10px 12px;font-size:12px;text-align:center;border:1px solid rgba(46,86,52,0.1);font-weight:400;font-variant-numeric:tabular-nums;">$661</td><td style="background:rgb(142,192,147);color:#1B3E1F;padding:10px 12px;font-size:12px;text-align:center;border:1px solid rgba(46,86,52,0.1);font-weight:400;font-variant-numeric:tabular-nums;">$756</td><td style="background:rgb(122,176,128);color:#FFFFFF;padding:10px 12px;font-size:12px;text-align:center;border:1px solid rgba(46,86,52,0.1);font-weight:400;font-variant-numeric:tabular-nums;">$852</td><td style="background:rgb(102,159,108);color:#FFFFFF;padding:10px 12px;font-size:12px;text-align:center;border:1px solid rgba(46,86,52,0.1);font-weight:400;font-variant-numeric:tabular-nums;">$948</td><td style="background:rgb(82,143,89);color:#FFFFFF;padding:10px 12px;font-size:12px;text-align:center;border:1px solid rgba(46,86,52,0.1);font-weight:400;font-variant-numeric:tabular-nums;">$1,043</td><td style="background:rgb(75,135,81);color:#FFFFFF;padding:10px 12px;font-size:12px;text-align:center;border:1px solid rgba(46,86,52,0.1);font-weight:400;font-variant-numeric:tabular-nums;">$1,100</td><td style="background:rgb(71,130,78);color:#FFFFFF;padding:10px 12px;font-size:12px;text-align:center;border:1px solid rgba(46,86,52,0.1);font-weight:400;font-variant-numeric:tabular-nums;">$1,139</td><td style="background:rgb(63,117,69);color:#FFFFFF;padding:10px 12px;font-size:12px;text-align:center;border:1px solid rgba(46,86,52,0.1);font-weight:400;font-variant-numeric:tabular-nums;">$1,234</td><td style="background:rgb(54,104,60);color:#FFFFFF;padding:10px 12px;font-size:12px;text-align:center;border:1px solid rgba(46,86,52,0.1);font-weight:400;font-variant-numeric:tabular-nums;">$1,330</td><td style="background:rgb(46,91,51);color:#FFFFFF;padding:10px 12px;font-size:12px;text-align:center;border:1px solid rgba(46,86,52,0.1);font-weight:400;font-variant-numeric:tabular-nums;">$1,426</td><td style="background:rgb(37,78,42);color:#FFFFFF;padding:10px 12px;font-size:12px;text-align:center;border:1px solid rgba(46,86,52,0.1);font-weight:400;font-variant-numeric:tabular-nums;">$1,521</td></tr></tbody>
+          <tbody><tr><td style="background:#2E5634;color:#F2EFEB;padding:10px 14px;font-size:12px;font-weight:600;border:1px solid rgba(46,86,52,0.15);white-space:nowrap;text-align:left;">80%</td><td style="background:rgb(150,198,155);color:#1B3E1F;padding:10px 12px;font-size:12px;text-align:center;border:1px solid rgba(46,86,52,0.1);font-weight:400;font-variant-numeric:tabular-nums;">$718</td><td style="background:rgb(129,181,134);color:#1B3E1F;padding:10px 12px;font-size:12px;text-align:center;border:1px solid rgba(46,86,52,0.1);font-weight:400;font-variant-numeric:tabular-nums;">$820</td><td style="background:rgb(107,164,113);color:#FFFFFF;padding:10px 12px;font-size:12px;text-align:center;border:1px solid rgba(46,86,52,0.1);font-weight:400;font-variant-numeric:tabular-nums;">$922</td><td style="background:rgb(86,147,93);color:#FFFFFF;padding:10px 12px;font-size:12px;text-align:center;border:1px solid rgba(46,86,52,0.1);font-weight:400;font-variant-numeric:tabular-nums;">$1,024</td><td style="background:rgb(72,131,79);color:#FFFFFF;padding:10px 12px;font-size:12px;text-align:center;border:1px solid rgba(46,86,52,0.1);font-weight:400;font-variant-numeric:tabular-nums;">$1,126</td><td style="background:rgb(67,123,73);color:#FFFFFF;padding:10px 12px;font-size:12px;text-align:center;border:2px solid #F2EFEB;font-weight:700;font-variant-numeric:tabular-nums;">$1,187 ★</td><td style="background:rgb(63,117,69);color:#FFFFFF;padding:10px 12px;font-size:12px;text-align:center;border:1px solid rgba(46,86,52,0.1);font-weight:400;font-variant-numeric:tabular-nums;">$1,228</td><td style="background:rgb(54,104,60);color:#FFFFFF;padding:10px 12px;font-size:12px;text-align:center;border:1px solid rgba(46,86,52,0.1);font-weight:400;font-variant-numeric:tabular-nums;">$1,330</td><td style="background:rgb(45,90,50);color:#FFFFFF;padding:10px 12px;font-size:12px;text-align:center;border:1px solid rgba(46,86,52,0.1);font-weight:400;font-variant-numeric:tabular-nums;">$1,432</td><td style="background:rgb(36,76,41);color:#FFFFFF;padding:10px 12px;font-size:12px;text-align:center;border:1px solid rgba(46,86,52,0.1);font-weight:400;font-variant-numeric:tabular-nums;">$1,534</td><td style="background:rgb(27,62,31);color:#FFFFFF;padding:10px 12px;font-size:12px;text-align:center;border:1px solid rgba(46,86,52,0.1);font-weight:400;font-variant-numeric:tabular-nums;">$1,636</td></tr></tbody>
+        </table>
+      </div>
+      <div style="padding:14px 32px;font-size:11px;color:#999;border-top:1px solid var(--border);">
+        ★ Escenario base actual &nbsp;·&nbsp; Verde oscuro = mayor rentabilidad &nbsp;·&nbsp; Verde claro = menor rentabilidad &nbsp;·&nbsp; Costos fijos USD 200/mes incluidos
+      </div>
+    </div>
+
+    <p style="font-size:12px; color:#555; margin-top:16px; font-style:italic;">
+      ★ Alta temporada (Dic–Feb y Jul): factor de demanda +10–15%. Temporada baja (May–Jun): –15%. Los valores son proyecciones orientativas sujetas a condiciones de mercado.
+    </p>
+  </div>
+</section>
+
+<!-- RECOMENDACIÓN -->
+<section id="recomendacion" style="background:var(--light-gray); max-width:100%; padding:100px 0;">
+  <div style="max-width:1100px; margin:0 auto; padding:0 48px;">
+    <div class="section-label">05 · Estrategia de Lanzamiento</div>
+    <h2>Cómo llegar al<br>escenario base en 90 días.</h2>
+
+    <div class="reco-box fade-in">
+      <h3>Precio de lanzamiento recomendado: <span style="color:var(--gold)">USD 38–42 / noche</span></h3>
+      <p>Arrancar por debajo del escenario conservador (<strong>USD 45</strong>) es una estrategia deliberada para acelerar la acumulación de reseñas en las primeras semanas. El algoritmo de Airbnb premia con mayor visibilidad a las propiedades nuevas con alta tasa de conversión.</p>
+      <p>Una vez alcanzadas <strong>10–15 reseñas positivas</strong>, el precio puede subirse gradualmente, primero al escenario conservador y luego al base. El diferencial del Kamado, el arte y el diseño industrial son argumentos sólidos para sostener un precio premium respecto a la competencia.</p>
+      <p style="margin-top:16px; font-size:13px; color:#666; font-style:italic;">* Esta proyección es un plan de trabajo orientativo. Los resultados reales serán validados con el mercado y ajustados en función de la demanda real.</p>
+    </div>
+
+    <div class="reco-steps fade-in">
+      <div class="reco-step">
+        <div class="num">01</div>
+        <h4>Semanas 1–4: Visibilidad</h4>
+        <p>Publicar a USD 60/noche. Activar descuento para primeras 3 reservas (10%). Completar perfil al 100%, fotos profesionales, descripción en inglés y español.</p>
+      </div>
+      <div class="reco-step">
+        <div class="num">02</div>
+        <h4>Mes 2: Optimización</h4>
+        <p>Ajustar precio según demanda con smart pricing. Activar descuento por estadía larga (+7 noches). Responder en menos de 1 hora para mantener Superhost.</p>
+      </div>
+      <div class="reco-step">
+        <div class="num">03</div>
+        <h4>Mes 3: Consolidación</h4>
+        <p>Subir a USD 68 precio base. Aplicar precios dinámicos para temporada alta (dic–feb y jul). Evaluar incorporar property manager para escalar sin fricción.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer style="background:var(--green-dark); color:rgba(242,239,235,0.6); border-top:none;">
+  <span style="color:var(--cream); font-family:'Bakbak One',sans-serif; letter-spacing:2px;">DISTRITO BA</span>
+  <span>Datos: Airbtics, La Nación Propiedades, Airbnb · 2025–2026</span>
+</footer>
+
+<script>
+// ── COUNTER ANIMATION ──
+function animateCount(el, target, duration=1800) {
+  const start = performance.now();
+  const isLarge = target > 999;
+  const update = (now) => {
+    const t = Math.min((now - start) / duration, 1);
+    const ease = 1 - Math.pow(1 - t, 3);
+    const val = Math.round(ease * target);
+    el.textContent = isLarge ? val.toLocaleString('es-AR') : val;
+    if (t < 1) requestAnimationFrame(update);
+  };
+  requestAnimationFrame(update);
+}
+
+const counters = document.querySelectorAll('[data-count]');
+let counted = false;
+const heroObs = new IntersectionObserver((entries) => {
+  if (entries[0].isIntersecting && !counted) {
+    counted = true;
+    counters.forEach(el => animateCount(el, +el.dataset.count));
+  }
+}, { threshold: 0.3 });
+heroObs.observe(document.querySelector('.hero-stats'));
+
+// ── FADE IN ──
+const faders = document.querySelectorAll('.fade-in');
+const fadeObs = new IntersectionObserver((entries) => {
+  entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('visible'); } });
+}, { threshold: 0.1 });
+faders.forEach(el => fadeObs.observe(el));
+
+// ── BAR CHART ──
+const ctx = document.getElementById('chart').getContext('2d');
+new Chart(ctx, {
+  type: 'bar',
+  data: {
+    labels: ['Conservador', 'Base', 'Optimista'],
+    datasets: [
+      {
+        label: 'Ingreso bruto anual',
+        data: [12150, 19584, 28044],
+        backgroundColor: 'rgba(46,86,52,0.12)',
+        borderColor: 'rgba(46,86,52,0.4)',
+        borderWidth: 1,
+        borderRadius: 2,
+      },
+      {
+        label: 'Resultado neto (sin PM)',
+        data: [7928, 14246, 21437],
+        backgroundColor: 'rgba(46,86,52,0.45)',
+        borderColor: 'rgba(46,86,52,0.8)',
+        borderWidth: 1,
+        borderRadius: 2,
+      },
+      {
+        label: 'Resultado neto (con PM)',
+        data: [5498, 10330, 15829],
+        backgroundColor: 'rgba(46,86,52,0.75)',
+        borderColor: '#2E5634',
+        borderWidth: 1,
+        borderRadius: 2,
+      }
+    ]
+  },
+  options: {
+    responsive: true,
+    plugins: {
+      legend: {
+        labels: { color:'#666', font:{size:12}, padding:20 }
+      },
+      tooltip: {
+        callbacks: {
+          label: ctx => ` ${ctx.dataset.label}: USD ${ctx.parsed.y.toLocaleString('es-AR')}`
+        }
+      }
+    },
+    scales: {
+      x: {
+        grid: { color:'rgba(255,255,255,0.04)' },
+        ticks: { color:'#888', font:{size:12} }
+      },
+      y: {
+        grid: { color:'rgba(255,255,255,0.04)' },
+        ticks: {
+          color:'#888', font:{size:12},
+          callback: v => 'USD ' + v.toLocaleString('es-AR')
+        }
+      }
+    }
+  }
+});
+
+// ── SENSIBILIDAD HEATMAP (inline HTML — no JS needed) ──
+
+// ── BARRIO BARS ANIMATION ──
+const barObs = new IntersectionObserver((entries) => {
+  entries.forEach(e => {
+    if (e.isIntersecting) {
+      e.target.querySelectorAll('.barrio-fill').forEach(bar => {
+        const target = bar.dataset.width;
+        setTimeout(() => { bar.style.width = target; }, 200);
+      });
+    }
+  });
+}, { threshold: 0.3 });
+const trendBar = document.querySelector('.trend-bar');
+if (trendBar) barObs.observe(trendBar);
+</script>
+</body>
+</html>
